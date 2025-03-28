@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pneumonia Detection</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Lobster&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Background video container */
+        .video-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            height: 100vh;
+            padding: 20px;
+        }
+
+        /* Container for heading and form */
+        .container {
+            background-color: rgba(255, 255, 255, 0.5);
+            padding: 20px;
+            border-radius: 25px;
+            border: 2px solid #035c65;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 750px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            backdrop-filter: blur(5px);
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-family: 'Lobster', cursive;
+            font-size: 3rem;
+            color: #035c65;
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            color: #035c65;
+            margin-bottom: 20px;
+        }
+
+        /* Form styling */
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            width: 100%;
+        }
+
+        label {
+            font-size: 1.2rem;
+            color: #035c65;
+            margin-bottom: 5px;
+            display: inline-block;
+            width: 100%;
+            text-align: left;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="file"] {
+            font-size: 1rem;
+            padding: 8px;
+            border: 2px solid #035c65;
+            border-radius: 5px;
+            width: 100%;
+            margin-bottom: 10px;
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+
+        button {
+            background-color: #035c65;
+            color: white;
+            font-size: 1.2rem;
+            padding: 10px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #024950;
+        }
+
+        /* Image preview */
+        #imagePreview {
+            width: 100%;
+            max-width: 300px;
+            height: auto;
+            object-fit: cover;
+            margin-top: 10px;
+            border: 2px solid #035c65;
+            border-radius: 10px;
+            display: none;
+        }
+
+        /* Result container */
+        #resultContainer {
+            margin-top: 20px;
+            text-align: center;
+            width: 100%;
+            display: none; /* Hidden by default */
+        }
+
+        /* Styling for result image */
+        #resultImage {
+            text-align: center;
+
+            width: 100%;
+            max-width: 400px;
+            border: 2px solid #035c65;
+            border-radius: 10px;
+            display: none;
+        }
+
+        /* Responsive design */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            h2 {
+                font-size: 1.3rem;
+            }
+
+            .container {
+                padding: 15px;
+            }
+
+            button {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Background Video -->
+    <div class="video-container">
+        <video autoplay muted loop>
+            <source src="{{ url_for('static', filename='backvideo.mp4') }}" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+
+    <div class="container">
+        <img id="resultImage" src="{{ url_for('static', filename='symp.png') }}" alt="Result Image">
+
+
+        <h1 id="heading">Your Pneumonia Detection Assistant</h1>
+        <h2 id="subheading">Get accurate results with our advanced AI model</h2>
+        <form id="uploadForm" onsubmit="handleSubmit(event)">
+            <label for="nameInput" class="form-label">Name:</label>
+            <input type="text" id="nameInput" placeholder="Enter your name" required />
+
+            <label for="ageInput" class="form-label">Age:</label>
+            <input type="number" id="ageInput" placeholder="Enter your age" required />
+
+            <label for="imageInput" class="form-label">Upload an X-ray image:</label>
+            <input type="file" id="imageInput" accept="image/*" required />
+
+            <img id="imagePreview" src="" alt="Image preview" />
+
+            <button type="submit" id="submitButton">Submit</button>
+
+        </form>
+
+        <!-- Result container where image appears -->
+        <div id="resultContainer">
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("imageInput").addEventListener("change", function(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const imagePreview = document.getElementById("imagePreview");
+                imagePreview.src = e.target.result;
+                imagePreview.style.display = "block";
+            };
+
+            if (file) {
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function handleSubmit(event) {
+            event.preventDefault();
+
+            // Hide headings
+            document.getElementById("heading").style.display = "none";
+            document.getElementById("subheading").style.display = "none";
+
+            // Hide form elements
+            document.getElementById("nameInput").style.display = "none";
+            document.getElementById("ageInput").style.display = "none";
+            document.getElementById("imageInput").style.display = "none";
+
+            // Hide labels
+            document.querySelectorAll(".form-label").forEach(label => {
+                label.style.display = "none";
+            });
+
+            // Hide submit button
+            document.getElementById("submitButton").style.display = "none";
+
+            // Hide image preview
+            document.getElementById("imagePreview").style.display = "none";
+
+            // Show the result container with an image
+            document.getElementById("resultContainer").style.display = "block";
+            document.getElementById("resultImage").style.display = "block";
+        }
+    </script>
+
+    <script src="{{ url_for('static', filename='main.js') }}"></script>
+</body>
+</html>
